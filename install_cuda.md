@@ -79,14 +79,31 @@ ln -s libstdc++.so.6 libstdc++.so.1
 
 Now, `$install_path/lib64` should have the required libraries.  
 
+### Environment Variables
 Finally, add the new installation to `startup.sh`. (Replace `install_path`
-with the actual path.)
+with the actual path.) To be safe, add export all variables you can think of.  
 
 ```sh
 export LD_LIBRARY_PATH=$install_path/lib64:$LD_LIBRARY_PATH
 export CPATH="$install_path/include:/usr/include/c++/11/:/usr/include/x86_64-linux-gnu/c++/11:$CPATH"
 export PATH="$install_path/bin:$PATH"
+
+# PyTorch, CMake, UVMBench
+export CUDA_PATH=$install_path
+export CUDA_INSTALL_DIR=$install_path
+export CUDA_HOME=$install_path
+export CUDA_DIR=$install_path
 ```
+
+Watch out for human and artificial stupidity (and hardcoding): for instance, this `Makefile` line:
+```
+CUDA_DIR = /usr/local/cuda-10.2/
+```
+should be replaced by
+```
+CUDA_DIR ?= /usr/local/cuda-10.2/
+```
+or better yet, omitted altogether. This will break an idle system in six months of updates.
 
 ## Copy Firmware
 
