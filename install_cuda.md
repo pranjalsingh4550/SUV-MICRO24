@@ -28,6 +28,44 @@ You can also use the `--help` message.
 Do **NOT** run any of this as root. Instead, use environment variables
 to use the correct libraries/headers.
 
+### The CUDA Installer
+
+There are two installers (run-files). Both are self-extracting archives.
+- `cuda-12.0.*.run` contains the toolkit (userspace components, documentation,
+  etc) and the kernel installer, `NVIDIA-Linux-x86_64-575.51.03.run`.
+- The kernel installer (`NVIDIA-Linux-x86_64-575.51.03.run`) is what you get
+  when you download from the NVIDIA Drivers page. It contains the kernel source
+  (open and proprietary flavours) and some other libraries: `libnvidia-ml.so`,
+  `libcuda.so`, which unfortulately resides in `/usr/lib/x86_64-linux-gnu/`.
+- More importantly, the second runfile contains `firmware`.
+
+### The Problem
+
+By default, some libraries are written to `/usr/local/cuda/lib64`, and some
+others to `/usr/lib/x86_64-linux-gnu/`.  
+The latter is shared by all CUDA versions, and will cause trouble when one tries
+to run a cherry-picked CUDA version. Compilation uses the desired `nvcc` version
+and succeeds, but program execution fails.   
+
+**Identifying Problems**: Run the executable with `strace`, and search for the
+libraries listed above. See which version/copy of each library is used:
+
+```c
+openat(AT_FDCWD, "/usr/lib/x86_64-linux-gnu/libcuda.so.1", O_RDONLY|O_CLOEXEC) = 3
+```
+
+**The Solution**: For the non-default CUDA version, copy these libraries to
+`/installation_path/lib64/`. Export `LD_LIBRARY_PATH`.
+
+**Which Libraries:** There are two sets of libraries: one in the `cuda_*.run`
+runfile, and the second in `NVIDIA-Linux-x86_64-*.run`. Extract both and copy
+the _second_ set of libraries.  
+The first set is handled by the installer, given the right CLI flags.  
+
+----
+
+## Steps
+
 Install the runfile.
 
 ```sh
@@ -137,3 +175,12 @@ To check the currently loaded driver version:
 ```sh
 cat /proc/driver/nvidia/version
 ```
+
+## Bugs/Errors
+
+Please email me at `pranjal.singh4910@gmail.com`.  
+Include these:
+- cleaned-up `dmesg` output. (Run `sudo dmesg -C`, re-`insmod` the kernel, run
+  the binary, repeat.)
+- The `strace` log of the userspace binary executable which failed to run.
+  (`strace -o tmp.strace ./a.out`)
